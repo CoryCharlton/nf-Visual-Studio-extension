@@ -427,6 +427,54 @@ namespace nanoFramework.Tools
             StronglyTypedResourceSuccessfullyCreated = true;
         }
 
+        /// <summary>
+        /// Generates a strongly typed resource class from in-memory .resx content.
+        /// Used by the VS custom tool so that unsaved designer edits are reflected
+        /// immediately without waiting for the file to be written to disk.
+        /// </summary>
+        public void CreateStronglyTypedResources(string inputFileName, string inputFileContent, CodeDomProvider provider, TextWriter writer, string resourceName)
+        {
+            Init();
+
+            ReadResources(inputFileName, inputFileContent, true);
+
+            string[] errors = null;
+
+            CreateStronglyTypedResources(provider, writer, resourceName, out errors);
+
+            if (errors != null && errors.Length > 0)
+            {
+                throw new ApplicationException(errors[0]);
+            }
+
+            StronglyTypedResourceSuccessfullyCreated = true;
+        }
+
+        /// <summary>
+        /// Reads resources from in-memory .resx content. For ResXFileRef entries the
+        /// linked files are still resolved from disk using the directory of
+        /// <paramref name="filename"/> as the base path.
+        /// </summary>
+        public void ReadResources(String filename, string fileContent, bool shouldUseSourcePath)
+        {
+            Format format = GetFormat(filename);
+            if (format == Format.XML)
+            {
+                ResXResourceReader resXReader = assemblyList != null
+                    ? new ResXResourceReader(new StringReader(fileContent), assemblyList)
+                    : new ResXResourceReader(new StringReader(fileContent));
+                if (shouldUseSourcePath)
+                {
+                    resXReader.BasePath = Path.GetDirectoryName(Path.GetFullPath(filename));
+                }
+                ReadResources(resXReader, filename);
+            }
+            else
+            {
+                ReadResources(filename, shouldUseSourcePath);
+            }
+        }
+
         private CodeNamespace CreateNamespace(CodeCompileUnit ccu, string ns, Hashtable tableNamespaces)
         {
             CodeNamespace codeNamespace = (CodeNamespace)tableNamespaces[ns];
