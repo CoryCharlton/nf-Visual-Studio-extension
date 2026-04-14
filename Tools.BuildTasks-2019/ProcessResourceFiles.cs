@@ -98,7 +98,7 @@ namespace nanoFramework.Tools
         /// <summary>
         /// Whether we successfully created the STR class
         /// </summary>
-        internal bool StronglyTypedResourceSuccessfullyCreated { get; } = false;
+        internal bool StronglyTypedResourceSuccessfullyCreated { get; private set; } = false;
 
         /// <summary>
         /// Indicates whether the resource reader should use the source file's
@@ -423,6 +423,8 @@ namespace nanoFramework.Tools
             {
                 throw new ApplicationException(errors[0]);
             }
+
+            StronglyTypedResourceSuccessfullyCreated = true;
         }
 
         private CodeNamespace CreateNamespace(CodeCompileUnit ccu, string ns, Hashtable tableNamespaces)
