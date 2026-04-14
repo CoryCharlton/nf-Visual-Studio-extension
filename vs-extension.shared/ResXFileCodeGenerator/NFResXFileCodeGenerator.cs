@@ -82,17 +82,29 @@ namespace nanoFramework.Tools.VisualStudio.Extension
             codeFileNameSpace = wszDefaultNamespace;
             codeGeneratorProgress = pGenerateProgress;
 
-            byte[] bytes = GenerateCode(wszInputFilePath, bstrInputFileContents);
-            if (bytes == null)
+            try
             {
+                byte[] bytes = GenerateCode(wszInputFilePath, bstrInputFileContents);
+                if (bytes == null)
+                {
+                    pbstrOutputFileContents[0] = IntPtr.Zero;
+                    pbstrOutputFileContentSize = 0;
+                }
+                else
+                {
+                    pbstrOutputFileContents[0] = Marshal.AllocCoTaskMem(bytes.Length);
+                    Marshal.Copy(bytes, 0, pbstrOutputFileContents[0], bytes.Length);
+                    pbstrOutputFileContentSize = (uint)bytes.Length;
+                }
+            }
+            catch (Exception ex)
+            {
+                Exception reported = ex is TargetInvocationException tie && tie.InnerException != null
+                    ? tie.InnerException
+                    : ex;
+                GeneratorErrorCallback(0, 4, reported.Message, 0, 0);
                 pbstrOutputFileContents[0] = IntPtr.Zero;
                 pbstrOutputFileContentSize = 0;
-            }
-            else
-            {
-                pbstrOutputFileContents[0] = Marshal.AllocCoTaskMem(bytes.Length);
-                Marshal.Copy(bytes, 0, pbstrOutputFileContents[0], bytes.Length);
-                pbstrOutputFileContentSize = (uint)bytes.Length;
             }
             return COM_HResults.S_OK;
         }
