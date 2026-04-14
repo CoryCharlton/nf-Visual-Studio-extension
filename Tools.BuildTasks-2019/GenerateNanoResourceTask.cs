@@ -992,37 +992,36 @@ namespace nanoFramework.Tools
                     }
                 }
 
-                // TODO
-                //// if the .resources is up to date with respect to the .resx file
-                ////  then we need to compare timestamps for each linked file inside
-                ////  the .resx file itself
-                //if (!shouldRebuildOutputFile && resxFileInfo.LinkedFiles != null)
-                //{
-                //    foreach (string linkedFilePath in resxFileInfo.LinkedFiles)
-                //    {
-                //        // If the linked file doesn't exist, then we want to rebuild this
-                //        // .resources file so the user sees an error from ResGen.exe
-                //        shouldRebuildOutputFile = !File.Exists(linkedFilePath);
+                // if the .resources is up to date with respect to the .resx file
+                // then we need to compare timestamps for each linked file inside
+                // the .resx file itself
+                if (!shouldRebuildOutputFile && resxFileInfo.LinkedFiles != null)
+                {
+                    foreach (string linkedFilePath in resxFileInfo.LinkedFiles)
+                    {
+                        // If the linked file doesn't exist, then we want to rebuild this
+                        // .resources file so the user sees an error from ResGen.exe
+                        shouldRebuildOutputFile = !File.Exists(linkedFilePath);
 
-                //        // If the linked file exists, then we need to compare the timestamp
-                //        // for the linked resource to see if it is more recent than the
-                //        // .resources file
-                //        if (!shouldRebuildOutputFile)
-                //        {
-                //            DateTime linkedFileTimeStamp = File.GetLastWriteTime(linkedFilePath);
-                //            shouldRebuildOutputFile = linkedFileTimeStamp > outputFileTimeStamp;
-                //        }
+                        // If the linked file exists, then we need to compare the timestamp
+                        // for the linked resource to see if it is more recent than the
+                        // .resources file
+                        if (!shouldRebuildOutputFile)
+                        {
+                            DateTime linkedFileTimeStamp = File.GetLastWriteTime(linkedFilePath);
+                            shouldRebuildOutputFile = linkedFileTimeStamp > outputFileTimeStamp;
+                        }
 
-                //        // If we found an instance where a linked file is in a state
-                //        // that we should rebuild the .resources file, then we should
-                //        // bail from this loop & just return since the first file that
-                //        // forces a rebuild is enough
-                //        if (shouldRebuildOutputFile)
-                //        {
-                //            break;
-                //        }
-                //    }
-                //}
+                        // If we found an instance where a linked file is in a state
+                        // that we should rebuild the .resources file, then we should
+                        // bail from this loop & just return since the first file that
+                        // forces a rebuild is enough
+                        if (shouldRebuildOutputFile)
+                        {
+                            break;
+                        }
+                    }
+                }
             }
 
             return shouldRebuildOutputFile;
