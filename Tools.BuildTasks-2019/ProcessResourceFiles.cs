@@ -837,11 +837,18 @@ namespace nanoFramework.Tools
         /// <param name="linePosition">Column number for messages</param>
         private void AddResource(string name, object value, String inputFileName, int lineNumber, int linePosition)
         {
+            if (resourcesHashTable.ContainsKey(name))
+            {
+                logger?.LogWarning(null, inputFileName, lineNumber, linePosition, 0, 0, "GenerateResource.DuplicateResourceName", name);
+                return;
+            }
+
             Entry entry = Entry.CreateEntry(name, value, StronglyTypedNamespace, GenerateNestedEnums ? StronglyTypedClassName : string.Empty);
 
             Debug.Assert(entry.ClassName.Length > 0);
 
             resources.Add(entry);
+            resourcesHashTable[name] = entry;
         }
 
         private void AddResource(string name, object value, String inputFileName)
