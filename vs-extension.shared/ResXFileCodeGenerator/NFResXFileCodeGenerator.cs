@@ -379,7 +379,8 @@ namespace nanoFramework.Tools.VisualStudio.Extension
                     resourceName = string.Format("{0}.{1}", resourceName, inputFileNameWithoutExtension);
                 }
 
-                typ.GetMethod("CreateStronglyTypedResources").Invoke(processResourceFiles, new object[] { inputFileName, CodeProvider, streamWriter, resourceName });
+                typ.GetMethod("CreateStronglyTypedResources", new Type[] { typeof(string), typeof(string), typeof(CodeDomProvider), typeof(TextWriter), typeof(string) })
+                    .Invoke(processResourceFiles, new object[] { inputFileName, inputFileContent, CodeProvider, streamWriter, resourceName });
             }
             else
             {
