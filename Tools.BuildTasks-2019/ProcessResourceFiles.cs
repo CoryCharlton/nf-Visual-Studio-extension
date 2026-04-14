@@ -955,7 +955,7 @@ namespace nanoFramework.Tools
 
                 if (entry == null)
                 {
-                    throw new Exception();
+                    throw new Exception($"Resource '{name}' has unsupported type '{value.GetType().FullName}'.");
                 }
 
                 if (entry.Namespace.Length == 0)
