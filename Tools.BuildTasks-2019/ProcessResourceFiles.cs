@@ -680,13 +680,22 @@ namespace nanoFramework.Tools
                 while (resEnum.MoveNext())
                 {
                     string name = (string)resEnum.Key;
-                    // Replace dot in the name with underscore. 
+                    // Replace dot in the name with underscore.
                     // 1. First reason  - this is what desktop resource generator does.
                     // 2. Second reason - Extra dots causes resource generator to create name space and enumerations.
                     //    This complicates the syntax and finally create invalid code if 2 or more dots are present.
                     //    So we just make longer name.
                     name = name.Replace('.', '_');
-                    object value = resEnum.Value;
+                    object value;
+                    try
+                    {
+                        value = resEnum.Value;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger?.LogWarning(null, fileName, 0, 0, 0, 0, "GenerateResource.CannotLoadResource", (string)resEnum.Key, ex.Message);
+                        continue;
+                    }
                     AddResource(name, value, fileName);
                 }
             }
