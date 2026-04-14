@@ -60,17 +60,19 @@ namespace nanoFramework.Tools.VisualStudio.Extension
 
         protected virtual void GeneratorErrorCallback(int warning, uint level, string message, uint line, uint column)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             IVsGeneratorProgress progress = CodeGeneratorProgress;
             if (progress != null)
             {
-                //Utility.ThrowOnFailure(progress.GeneratorError(warning, level, message, line, column));
-
+                progress.GeneratorError(warning, level, message, line, column);
             }
         }
 
         public int Generate(string wszInputFilePath, string bstrInputFileContents, string wszDefaultNamespace,
                              IntPtr[] pbstrOutputFileContents, out uint pbstrOutputFileContentSize, IVsGeneratorProgress pGenerateProgress)
         {
+            // wait for debugger on var
+            DebuggerHelper.WaitForDebuggerIfEnabled("NFRESXCODEGEN_DEBUG");
 
             if (bstrInputFileContents == null)
             {
@@ -149,6 +151,7 @@ namespace nanoFramework.Tools.VisualStudio.Extension
         {
             get
             {
+                ThreadHelper.ThrowIfNotOnUIThread();
                 if (serviceProvider == null)
                 {
                     IOleServiceProvider oleServiceProvider = site as IOleServiceProvider;
@@ -162,11 +165,13 @@ namespace nanoFramework.Tools.VisualStudio.Extension
 
         protected Object GetService(Guid serviceGuid)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             return SiteServiceProvider.GetService(serviceGuid);
         }
 
         protected object GetService(Type serviceType)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             return SiteServiceProvider.GetService(serviceType);
         }
 
@@ -373,228 +378,5 @@ namespace nanoFramework.Tools.VisualStudio.Extension
             return base.StreamToBytes(outputStream);
         }
 
-        internal abstract class BaseCodeGenerator : IVsSingleFileGenerator
-        {
-            private string codeFileNameSpace = string.Empty;
-            private string codeFilePath = string.Empty;
-
-            private IVsGeneratorProgress codeGeneratorProgress;
-
-            // **************************** PROPERTIES ****************************
-            protected string FileNameSpace
-            {
-                get
-                {
-                    return codeFileNameSpace;
-                }
-            }
-
-            protected string InputFilePath
-            {
-                get
-                {
-                    return codeFilePath;
-                }
-            }
-
-            internal IVsGeneratorProgress CodeGeneratorProgress
-            {
-                get
-                {
-                    return codeGeneratorProgress;
-                }
-            }
-
-            // **************************** METHODS **************************
-            public abstract int DefaultExtension(out string ext);
-
-            // MUST implement this abstract method.
-            protected abstract byte[] GenerateCode(string inputFileName, string inputFileContent);
-
-
-            protected virtual void GeneratorErrorCallback(int warning, uint level, string message, uint line, uint column)
-            {
-                ThreadHelper.ThrowIfNotOnUIThread();
-                IVsGeneratorProgress progress = CodeGeneratorProgress;
-                if (progress != null)
-                {
-                    progress.GeneratorError(warning, level, message, line, column);
-                }
-            }
-
-            public int Generate(string wszInputFilePath, string bstrInputFileContents, string wszDefaultNamespace,
-                                 IntPtr[] pbstrOutputFileContents, out uint pbstrOutputFileContentSize, IVsGeneratorProgress pGenerateProgress)
-            {
-                // wait for debugger on var
-                DebuggerHelper.WaitForDebuggerIfEnabled("NFRESXCODEGEN_DEBUG");
-
-                if (bstrInputFileContents == null)
-                {
-                    throw new ArgumentNullException(bstrInputFileContents);
-                }
-                codeFilePath = wszInputFilePath;
-                codeFileNameSpace = wszDefaultNamespace;
-                codeGeneratorProgress = pGenerateProgress;
-
-                byte[] bytes = GenerateCode(wszInputFilePath, bstrInputFileContents);
-                if (bytes == null)
-                {
-                    pbstrOutputFileContents[0] = IntPtr.Zero;
-                    pbstrOutputFileContentSize = 0;
-                }
-                else
-                {
-                    pbstrOutputFileContents[0] = Marshal.AllocCoTaskMem(bytes.Length);
-                    Marshal.Copy(bytes, 0, pbstrOutputFileContents[0], bytes.Length);
-                    pbstrOutputFileContentSize = (uint)bytes.Length;
-                }
-                return COM_HResults.S_OK;
-            }
-
-            protected byte[] StreamToBytes(Stream stream)
-            {
-                if (stream.Length == 0)
-                    return new byte[] { };
-
-                long position = stream.Position;
-                stream.Position = 0;
-                byte[] bytes = new byte[(int)stream.Length];
-                stream.Read(bytes, 0, bytes.Length);
-                stream.Position = position;
-
-                return bytes;
-            }
-        }
-
-        internal abstract class BaseCodeGeneratorWithSite : BaseCodeGenerator, IObjectWithSite
-        {
-            private Object site = null;
-            private CodeDomProvider codeDomProvider = null;
-            private static Guid CodeDomInterfaceGuid = new Guid("{73E59688-C7C4-4a85-AF64-A538754784C5}");
-            private static Guid CodeDomServiceGuid = CodeDomInterfaceGuid;
-            private ServiceProvider serviceProvider = null;
-
-            protected virtual CodeDomProvider CodeProvider
-            {
-                get
-                {
-                    if (codeDomProvider == null)
-                    {
-                        IVSMDCodeDomProvider vsmdCodeDomProvider = (IVSMDCodeDomProvider)GetService(CodeDomServiceGuid);
-                        if (vsmdCodeDomProvider != null)
-                        {
-                            codeDomProvider = (CodeDomProvider)vsmdCodeDomProvider.CodeDomProvider;
-                        }
-                        Debug.Assert(codeDomProvider != null, "Get CodeDomProvider Interface failed.  GetService(QueryService(CodeDomProvider) returned Null.");
-                    }
-                    return codeDomProvider;
-                }
-                set
-                {
-                    if (value == null)
-                    {
-                        throw new ArgumentNullException();
-                    }
-
-                    codeDomProvider = value;
-                }
-            }
-
-            private ServiceProvider SiteServiceProvider
-            {
-                get
-                {
-                    ThreadHelper.ThrowIfNotOnUIThread();
-                    if (serviceProvider == null)
-                    {
-                        IOleServiceProvider oleServiceProvider = site as IOleServiceProvider;
-                        Debug.Assert(oleServiceProvider != null, "Unable to get IOleServiceProvider from site object.");
-
-                        serviceProvider = new ServiceProvider(oleServiceProvider);
-                    }
-                    return serviceProvider;
-                }
-            }
-
-            protected Object GetService(Guid serviceGuid)
-            {
-                ThreadHelper.ThrowIfNotOnUIThread();
-                return SiteServiceProvider.GetService(serviceGuid);
-            }
-
-            protected object GetService(Type serviceType)
-            {
-                ThreadHelper.ThrowIfNotOnUIThread();
-                return SiteServiceProvider.GetService(serviceType);
-            }
-
-
-            public override int DefaultExtension(out string ext)
-            {
-                CodeDomProvider codeDom = CodeProvider;
-                Debug.Assert(codeDom != null, "CodeDomProvider is NULL.");
-                string extension = codeDom.FileExtension;
-                if (extension != null && extension.Length > 0)
-                {
-                    if (extension[0] != '.')
-                    {
-                        extension = "." + extension;
-                    }
-                }
-
-                ext = extension;
-                return COM_HResults.S_OK;
-            }
-
-            protected virtual ICodeGenerator GetCodeWriter()
-            {
-                CodeDomProvider codeDom = CodeProvider;
-                if (codeDom != null)
-                {
-#pragma warning disable 618 //backwards compat
-                    return codeDom.CreateGenerator();
-#pragma warning restore 618
-                }
-
-                return null;
-            }
-
-            // ******************* Implement IObjectWithSite *****************
-            //
-            public virtual void SetSite(object pUnkSite)
-            {
-                site = pUnkSite;
-                codeDomProvider = null;
-                serviceProvider = null;
-            }
-
-            // Does anyone rely on this method?
-            public virtual void GetSite(ref Guid riid, out IntPtr ppvSite)
-            {
-                if (site == null)
-                {
-                    // COM_HResults.Throw(COM_HResults.E_FAIL);
-                }
-
-                IntPtr pUnknownPointer = Marshal.GetIUnknownForObject(site);
-                try
-                {
-                    Marshal.QueryInterface(pUnknownPointer, ref riid, out ppvSite);
-
-                    if (ppvSite == IntPtr.Zero)
-                    {
-                        //COM_HResults.Throw(COM_HResults.E_NOINTERFACE);
-                    }
-                }
-                finally
-                {
-                    if (pUnknownPointer != IntPtr.Zero)
-                    {
-                        Marshal.Release(pUnknownPointer);
-                        pUnknownPointer = IntPtr.Zero;
-                    }
-                }
-            }
-        }
     }
 }
