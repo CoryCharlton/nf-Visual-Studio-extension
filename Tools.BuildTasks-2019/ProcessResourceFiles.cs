@@ -945,7 +945,7 @@ namespace nanoFramework.Tools
                         // this is a binary resource
                         MemoryStream msOther = (MemoryStream)value;
                         byte[] memoryData = new byte[msOther.Length];
-                        msOther.Read(memoryData, 0, 0);
+                        msOther.Read(memoryData, 0, (int) msOther.Length);
                         entry = new BinaryEntry(name, memoryData);
                         break;
                     default:
