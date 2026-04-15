@@ -1010,9 +1010,7 @@ namespace nanoFramework.Tools
                         // Examples  - .wav
                         // this is a binary resource
                         MemoryStream msOther = (MemoryStream)value;
-                        msOther.Position = 0;
-                        byte[] memoryData = new byte[msOther.Length];
-                        msOther.Read(memoryData, 0, (int)msOther.Length);
+                        byte[] memoryData = msOther.ToArray();
                         entry = new BinaryEntry(name, memoryData);
                         break;
                     default:
