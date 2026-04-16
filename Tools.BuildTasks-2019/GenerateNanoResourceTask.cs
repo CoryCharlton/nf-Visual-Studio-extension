@@ -997,8 +997,17 @@ namespace nanoFramework.Tools
                 // the .resx file itself
                 if (!shouldRebuildOutputFile && resxFileInfo.LinkedFiles != null)
                 {
-                    foreach (string linkedFilePath in resxFileInfo.LinkedFiles)
+                    // Linked file paths in the .resx may be relative. Resolve them the same
+                    // way ResXResourceReader does: against BaseLinkedFileDirectory if set,
+                    // otherwise against the directory containing the .resx file.
+                    string linkedFileBaseDir = cache.BaseLinkedFileDirectory ?? Path.GetDirectoryName(sourceFilePath);
+
+                    foreach (string rawLinkedFilePath in resxFileInfo.LinkedFiles)
                     {
+                        string linkedFilePath = Path.IsPathRooted(rawLinkedFilePath)
+                            ? rawLinkedFilePath
+                            : Path.GetFullPath(Path.Combine(linkedFileBaseDir, rawLinkedFilePath));
+
                         // If the linked file doesn't exist, then we want to rebuild this
                         // .resources file so the user sees an error from ResGen.exe
                         shouldRebuildOutputFile = !File.Exists(linkedFilePath);
